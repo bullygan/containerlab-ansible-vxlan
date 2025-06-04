@@ -53,7 +53,7 @@
       when: lab_status.rc == 0
 
 # 3. Instalación de Python (solo si los contenedores no lo traen por defecto)
-- import_playbook: instalar_python3.yaml
+- import_playbook: instalar_python3.yml
   tags: [setup, setup_python3]
 
 # 4. Configuración individual de cada nodo
