@@ -1,0 +1,101 @@
+name: lab3
+
+topology:
+  nodes:
+    sw1:
+      kind: linux
+      image: frrouting/frr:latest
+      binds:
+        - ./configs/sw1/frr.conf:/etc/frr/frr.conf
+        - ./configs/sw1/config.sh:/config.sh
+      exec:
+        - "chmod +x /config.sh"
+    r2:
+      kind: linux
+      image: frrouting/frr:latest
+      binds:
+        - ./configs/r2/frr.conf:/etc/frr/frr.conf
+        - ./configs/r2/config.sh:/config.sh
+      exec:
+        - "chmod +x /config.sh"
+    r3:
+      kind: linux
+      image: frrouting/frr:latest
+      binds:
+        - ./configs/r3/frr.conf:/etc/frr/frr.conf
+        - ./configs/r3/config.sh:/config.sh
+      exec:
+        - "chmod +x /config.sh"
+    dns_primario:
+      kind: linux
+      image: ubuntu:latest
+      binds:
+        - ./configs/dns_primario/named.conf:/etc/bind/named.conf
+        # Para una sola pagina
+        #- ./configs/dns_primario/db.directa:/etc/bind/db.directa
+        #- ./configs/dns_primario/db.inversa:/etc/bind/db.inversa
+        # Para dos paginas (comentar uno o el otro segun cual quiera usar)
+        - ./configs/dns_primario/db2.directa:/etc/bind/db.directa
+        - ./configs/dns_primario/db2.inversa:/etc/bind/db.inversa
+        #Archivo config.sh
+        - ./configs/dns_primario/config.sh:/config.sh
+      exec:
+        - "chmod +x /config.sh"
+    dns_secundario:
+      kind: linux
+      image: ubuntu:latest
+      binds:
+        - ./configs/dns_secundario/named.conf:/etc/bind/named.conf
+        - ./configs/dns_secundario/config.sh:/config.sh
+      exec:
+        - "chmod +x /config.sh"
+    web_server:
+      kind: linux
+      image: ubuntu:latest
+      binds:
+        #Para una pagina
+        #- ./configs/web_server/labredes.conf:/etc/apache2/sites-available/labredes.conf
+        #- ./configs/web_server/index.html:/var/www/html/index.html
+        #Para dos paginas
+        - ./configs/web_server/sitio1/sitio1.conf:/etc/apache2/sites-available/sitio1.conf
+        - ./configs/web_server/sitio2/sitio2.conf:/etc/apache2/sites-available/sitio2.conf
+        - ./configs/web_server/sitio1/:/var/www/sitio1/
+        - ./configs/web_server/sitio2:/var/www/sitio2/
+        #Archivo config.sh
+        - ./configs/web_server/config.sh:/config.sh
+      exec:
+        - "chmod +x /config.sh"
+    PC1:
+      kind: linux
+      image: ubuntu:latest
+      binds:
+        - ./configs/PC1/config.sh:/config.sh
+      exec:
+        - "chmod +x /config.sh"
+    PC2:
+      kind: linux
+      image: ubuntu:latest
+      binds:
+        - ./configs/PC2/config.sh:/config.sh
+      exec:
+        - "chmod +x /config.sh"
+    PC3:
+      kind: linux
+      image: ubuntu:latest
+      binds:
+        - ./configs/PC3/config.sh:/config.sh
+      exec:
+        - "chmod +x /config.sh"
+        #- "./config.sh" Tambien podria ejecutarlo desde aca pero prefiero hacerlo manual en cada uno 
+        # o con el todoconfig.sh dps para que el despliegue se haga rapido y yo dps poder ir de ultima
+        # levantando los equipos que quiera probar. si quisiera arrancar la infra y tener todo ya ready
+        # podria poner este exec del config en cada uno de los dispositivos y voila.
+  links:
+    - endpoints: [ "sw1:eth1", "dns_primario:eth1" ]
+    - endpoints: [ "sw1:eth2", "dns_secundario:eth1" ]
+    - endpoints: [ "sw1:eth3", "web_server:eth1" ]
+    - endpoints: [ "sw1:eth4", "PC1:eth1" ]
+    - endpoints: [ "sw1:eth5", "r2:eth1" ]
+    - endpoints: [ "sw1:eth6", "PC2:eth1" ]
+    - endpoints: [ "r2:eth5", "r3:eth5" ]
+    - endpoints: [ "r3:eth2", "PC3:eth1" ]

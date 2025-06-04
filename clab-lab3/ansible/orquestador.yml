@@ -1,0 +1,86 @@
+# orquestador.yml
+# Este playbook actúa como el orquestador principal.
+# Configura todos los nodos con sus respectivos playbooks.
+
+# 1. Destruir el laboratorio (opcional, con tag aparte)
+- name: Destruir Containerlab lab3.yaml
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tags: destroy_lab
+  vars:
+    ansible_become: false
+    lab_path: "/home/bullygan/Redes_de_info/Trabajo_Final_clab/3-VxLAN-DNS2-WebServer/lab3.yaml"
+  tasks:
+    - name: Verificar si el lab ya está desplegado
+      ansible.builtin.command: containerlab inspect -t {{ lab_path }}
+      register: lab_status
+      failed_when: false
+      changed_when: false
+    
+    - name: Ejecutar containerlab destroy si el lab esta desplegado.
+      ansible.builtin.command: containerlab destroy -t {{ lab_path }}
+      when: lab_status.rc == 0
+
+    - name: El lab no existe, no se necesita destruir
+      ansible.builtin.debug:
+        msg: "Containerlab no está desplegado. Skipping destroy."
+      when: lab_status.rc != 0  # Mensaje informativo si no existe
+
+# 2. Levantar Containerlab (solo si no está ya desplegado)
+- name: Levantar Containerlab lab3.yaml
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_become: false
+    lab_path: "/home/bullygan/Redes_de_info/Trabajo_Final_clab/3-VxLAN-DNS2-WebServer/lab3.yaml"
+  tags: create_lab
+  tasks:
+    - name: Verificar si el lab ya está desplegado
+      ansible.builtin.command: containerlab inspect -t {{ lab_path }}
+      register: lab_status
+      failed_when: false
+      changed_when: false
+
+    - name: Ejecutar containerlab deploy si el lab no está desplegado
+      ansible.builtin.command: containerlab deploy -t {{ lab_path }}
+      when: lab_status.rc != 0
+
+    - name: El lab ya existe, no se necesita deployar
+      ansible.builtin.debug:
+        msg: "Containerlab ya está desplegado. Skipping deploy."
+      when: lab_status.rc == 0
+
+# 3. Instalación de Python (solo si los contenedores no lo traen por defecto)
+- import_playbook: instalar_python3.yaml
+  tags: [setup, setup_python3]
+
+# 4. Configuración individual de cada nodo
+- import_playbook: nodos/dns_primario.yml
+  tags: [setup, setup_dnsprimario]
+
+- import_playbook: nodos/dns_secundario.yml
+  tags: [setup, setup_dnssecundario]
+
+- import_playbook: nodos/web_server.yml
+  tags: [setup, setup_webserver]
+
+- import_playbook: nodos/sw1.yml
+  tags: [setup, setup_sw1]
+
+- import_playbook: nodos/r2.yml
+  tags: [setup, setup_r2]
+
+- import_playbook: nodos/r3.yml
+  tags: [setup, setup_r3]
+
+- import_playbook: nodos/PC1.yml
+  tags: [setup, setup_PC1]
+
+- import_playbook: nodos/PC2.yml
+  tags: [setup, setup_PC2]
+
+- import_playbook: nodos/PC3.yml
+  tags: [setup, setup_PC3]
+

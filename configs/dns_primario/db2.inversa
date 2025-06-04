@@ -1,0 +1,15 @@
+$TTL 86400
+@   IN  SOA labredes.com. admin.labredes.com. (
+        2025021902  ; Serial (incrementado)
+        3600
+        1800
+        604800
+        86400 )
+
+@    IN  NS  dnsprimario.labredes.com.
+11   IN  PTR dnsprimario.labredes.com.
+12   IN  PTR dnssecundario.labredes.com.
+50   IN  PTR sitio1.labredes.com.
+50   IN  PTR sitio2.labredes.com.
+50   IN  PTR alias1.labredes.com.
+50   IN  PTR alias2.labredes.com.

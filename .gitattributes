@@ -1,0 +1,8 @@
+# Forzar a GitHub a reconocer YAML como lenguaje principal
+*.yml linguist-language=YAML
+*.yaml linguist-language=YAML
+
+# Excluir archivos de documentación para que no inflen el gráfico de lenguajes
+*.md linguist-documentation
+README linguist-documentation
+README.md linguist-documentation

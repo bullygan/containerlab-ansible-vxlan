@@ -1,0 +1,126 @@
+- name: Configurar r3 con módulos de Ansible
+  hosts: clab-lab3-r3
+  gather_facts: false
+  become: true # eleva privilegios a root.
+
+  tasks:
+    - name: Iniciar servicio FRR
+      command: /etc/init.d/frr start
+
+    - name: Habilitar reenvío de paquetes
+      sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        state: present
+
+    - name: Actualizar paquetes en Alpine
+      command: apk update
+
+    - name: Instalar tcpdump
+      command: apk add tcpdump
+
+    - name: Crear bridge BRIDGE2
+      command: ip link add name BRIDGE2 type bridge
+
+    - name: Levantar bridge BRIDGE2
+      command: ip link set dev BRIDGE2 up
+
+    - name: Habilitar vlan_filtering en bridge
+      command: ip link set dev BRIDGE2 type bridge vlan_filtering 1
+
+    - name: Configurar IP en eth5
+      command: ip addr add 10.0.0.2/24 dev eth5
+      ignore_errors: true
+      
+    - name: Levantar interfaz eth5
+      command: ip link set eth5 up
+
+    - name: Crear interfaz VxLAN
+      command: >
+        ip link add vxlan100 type vxlan id 100 dev eth5 remote 10.0.0.1 local 10.0.0.2 dstport 4789 nolearning
+
+    - name: Levantar vxlan100
+      command: ip link set vxlan100 up
+
+    - name: Agregar eth2 al bridge
+      command: ip link set dev eth2 master BRIDGE2
+
+    - name: Agregar vxlan100 al bridge
+      command: ip link set dev vxlan100 master BRIDGE2
+
+    - name: Crear y levantar subinterfaces VLAN
+      block:
+        - name: Crear subinterfaz Gerencia
+          command: ip link add link BRIDGE2 name Gerencia type vlan id 10
+
+        - name: Levantar Gerencia
+          command: ip link set dev Gerencia up
+
+        - name: Crear subinterfaz Empleados
+          command: ip link add link BRIDGE2 name Empleados type vlan id 20
+
+        - name: Levantar Empleados
+          command: ip link set dev Empleados up
+
+        - name: Crear subinterfaz Servidores
+          command: ip link add link BRIDGE2 name Servidores type vlan id 50
+
+        - name: Levantar Servidores
+          command: ip link set dev Servidores up
+      tags: vlan-setup
+
+    - name: Agregar VLANs al bridge (self)
+      block:
+        - name: Agregar VLAN 10 al bridge
+          command: bridge vlan add dev BRIDGE2 vid 10 self
+
+        - name: Agregar VLAN 20 al bridge
+          command: bridge vlan add dev BRIDGE2 vid 20 self
+
+        - name: Agregar VLAN 50 al bridge
+          command: bridge vlan add dev BRIDGE2 vid 50 self
+      tags: vlan-bridge-self
+
+# Alternativa optimizada usando loop para evitar repetición.
+# Equivale a agregar las VLANs tagged a vxlan100 una por una.
+    
+    - name: Agregar VLANs tagged a vxlan100
+      loop: [10, 20, 50]
+      command: bridge vlan add dev vxlan100 vid {{ item }} tagged
+      tags: vlan-vxlan100
+
+    - name: Agregar VLANs tagged a eth5
+      ignore_errors: true
+      block:
+        - name: Agregar VLAN 10 a eth5
+          command: bridge vlan add dev eth5 vid 10 tagged
+        - name: Agregar VLAN 20 a eth5
+          command: bridge vlan add dev eth5 vid 20 tagged
+        - name: Agregar VLAN 50 a eth5
+          command: bridge vlan add dev eth5 vid 50 tagged
+      tags: vlan-eth5
+
+    - name: Agregar VLAN 20 untagged a eth2 (Access port)
+      command: bridge vlan add dev eth2 vid 20 pvid untagged
+
+    - name: Mostrar Configuraciones en el bridge 
+      block:
+        - name: Generar salida VLANs del bridge
+          command: bridge vlan show
+          register: vlan_output
+          tags: debug_bridgevlan
+
+        - name: Mostrar salida bridge vlan show
+          debug:
+            var: vlan_output.stdout_lines
+          tags: debug_bridgevlan
+
+        - name: Generar Salida interfaces asignadas al bridge
+          command: brctl show
+          register: brctl_output
+
+        - name: Mostrar salida brctl show
+          debug:
+            var: brctl_output.stdout_lines
+          tags: debug_brctl
+      tags: debug

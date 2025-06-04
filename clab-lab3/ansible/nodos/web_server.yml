@@ -1,0 +1,57 @@
+- name: Configurar web server con módulos de Ansible
+  hosts: clab-lab3-web_server
+  gather_facts: false
+  become: true
+
+  tasks:
+    
+    - name: Asegurar resolución DNS funcional para instalación
+      ansible.builtin.command: echo 'nameserver 8.8.8.8' > /etc/resolv.conf
+    
+    - name: Instalar utilidades base
+      ansible.builtin.apt:
+        name:
+          - apt-utils
+          - apache2
+          - iproute2
+          - iputils-ping
+          - net-tools
+          - tcpdump
+        update_cache: yes
+        install_recommends: no
+        force_apt_get: yes
+
+    - name: Configurar IP en eth1
+      ansible.builtin.command: ip addr add 192.168.50.50/24 dev eth1
+      ignore_errors: true  # Por si ya está configurada
+
+    - name: Eliminar ruta por defecto existente
+      ansible.builtin.command: ip route del default
+      ignore_errors: true
+
+    - name: Agregar nueva ruta por defecto
+      ansible.builtin.command: ip route add default via 192.168.50.1
+
+    - name: Iniciar servicio apache2
+      ansible.builtin.service:
+        name: apache2
+        state: started
+        enabled: yes
+
+    - name: Deshabilitar el sitio por defecto
+      ansible.builtin.command: a2dissite 000-default.conf
+
+    - name: Habilitar sitios sitio1.conf y sitio2.conf
+      ansible.builtin.command: a2ensite {{ item }}
+      loop:
+        - sitio1.conf
+        - sitio2.conf
+      tags: apache-sites
+      
+    - name: Recargar el servicio Apache
+      ansible.builtin.service:
+        name: apache2
+        state: reloaded
+
+    - name: Asegurar resolución DNS funcional para instalación
+      command: echo 'nameserver 192.168.50.11' >> /etc/resolv.conf

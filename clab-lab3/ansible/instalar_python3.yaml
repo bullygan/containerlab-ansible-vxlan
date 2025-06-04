@@ -1,0 +1,25 @@
+- name: Instalar Python3 en contenedores Debian
+  hosts: debian
+  gather_facts: false
+  tasks:
+    - name: Verificar si python3 ya está instalado
+      raw: which python3
+      register: python3_debian_check
+      ignore_errors: true
+
+    - name: Instalar Python3 si no está
+      raw: apt-get update && apt-get install -y python3
+      when: python3_debian_check.rc != 0
+
+- name: Instalar Python3 en contenedores Alpine
+  hosts: alpine
+  gather_facts: false
+  tasks:
+    - name: Verificar si python3 ya está instalado
+      raw: which python3
+      register: python3_alpine_check
+      ignore_errors: true
+
+    - name: Instalar Python3 si no está
+      raw: apk update && apk add python3
+      when: python3_alpine_check.rc != 0

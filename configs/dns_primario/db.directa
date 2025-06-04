@@ -1,0 +1,16 @@
+$TTL 86400
+@   IN  SOA labredes.com. admin.labredes.com. (
+        2025021904  ; Serial // (incrementado) puedo hacer bind reload
+        3600        ; Refresh
+        1800        ; Retry
+        604800      ; Expire
+        86400 )     ; Minimum TTL
+
+@   IN  A   192.168.50.11
+@   IN  NS  dnsprimario.labredes.com.
+@   IN  NS  dnssecundario.labredes.com.
+dnsprimario.labredes.com.   IN A 192.168.50.11
+dnssecundario.labredes.com. IN A 192.168.50.12
+web.labredes.com.           IN A 192.168.50.50
+www.labredes.com.           IN CNAME web.labredes.com.
+

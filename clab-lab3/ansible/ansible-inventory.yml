@@ -1,0 +1,34 @@
+all:
+  vars:
+    # The generated inventory is assumed to be used from the clab host.
+    # Hence no http proxy should be used. Therefore we make sure the http
+    # module does not attempt using any global http proxy.
+    ansible_httpapi_use_proxy: false
+    ansible_connection: docker # Conecta directamente a contenedores vía Docker, sin SSH
+    ansible_user: root # Usa el usuario root (por defecto en la mayoría de contenedores)
+    #ansible_become: true # Eleva privilegios (aunque ya sos root, esto lo mantiene explícito)
+    ansible_become_method: su # Usa su en vez de sudo, que no está instalado
+  children:
+    debian:
+      hosts:
+        clab-lab3-PC1:
+          
+        clab-lab3-PC2:
+          
+        clab-lab3-PC3:
+          
+        clab-lab3-dns_primario:
+        
+        clab-lab3-dns_secundario:
+
+        clab-lab3-web_server:
+          
+    alpine:
+      hosts:    
+        clab-lab3-r2:
+          
+        clab-lab3-r3:
+          
+        clab-lab3-sw1:
+          
+        

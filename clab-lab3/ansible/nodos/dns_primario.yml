@@ -1,0 +1,46 @@
+- name: Configurar dns_primario con módulos de Ansible
+  hosts: clab-lab3-dns_primario
+  gather_facts: false
+  become: true
+
+  tasks:
+
+    - name: Asegurar resolución DNS funcional para instalación
+      ansible.builtin.command: echo 'nameserver 8.8.8.8' > /etc/resolv.conf
+
+    - name: Instalar utilidades base
+      ansible.builtin.apt:
+        name:
+          - apt-utils
+          - bind9
+          - iproute2
+          - iputils-ping
+          - net-tools
+          - tcpdump
+          - dnsutils
+        update_cache: yes
+        install_recommends: no
+        force_apt_get: yes
+
+    - name: Configurar IP en eth1
+      ansible.builtin.command: ip addr add 192.168.50.11/24 dev eth1
+      ignore_errors: true  # Por si ya está configurada
+
+    - name: Eliminar ruta por defecto existente
+      ansible.builtin.command: ip route del default
+      ignore_errors: true
+
+    - name: Agregar nueva ruta por defecto
+      ansible.builtin.command: ip route add default via 192.168.50.1
+
+    - name: Iniciar servicio BIND9
+      ansible.builtin.service:
+        name: named
+        state: started
+        enabled: yes
+
+    - name: Verificar zona DNS
+      ansible.builtin.command: named-checkzone labredes.com /etc/bind/db.directa
+
+    - name: Asegurar resolución DNS funcional para instalación
+      command: echo 'nameserver 192.168.50.11' >> /etc/resolv.conf

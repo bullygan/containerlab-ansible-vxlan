@@ -1,0 +1,175 @@
+- name: Prueba de conectividad de VLAN 20
+  hosts: clab-lab3-PC2
+  gather_facts: false
+  tags: vlan
+  tasks:
+    - name: Ping de PC2 a PC3 (VLAN 20)
+      ansible.builtin.shell: ping -c 4 192.168.20.120
+      register: ping_pc3
+      tags: [vlan, vlan20]
+
+    - name: Mostrar resultado del ping a PC3
+      ansible.builtin.debug:
+        var: ping_pc3.stdout_lines
+      tags: [vlan, vlan20]
+
+- name: Prueba de conectividad entrevlan
+  hosts: clab-lab3-PC1
+  gather_facts: false
+  tags: vlan
+  tasks:
+    - name: Ping de PC1 a PC2 (entre VLAN)   
+      ansible.builtin.shell: ping -c 4 192.168.20.20
+      register: entrevlan
+      failed_when: false 
+      #No importa lo que devuelva el comando, no lo considera un error
+      tags: [vlan, entrevlan]
+
+    - name: Mostrar resultado del ping a PC3
+      ansible.builtin.debug:
+        var: entrevlan.stdout_lines
+      tags: [vlan, entrevlan]  
+
+- name: Prueba de conectividad desde PC1 a Web Server
+  hosts: clab-lab3-PC1
+  gather_facts: false
+  tasks:
+    - name: Ping a Web Server
+      ansible.builtin.shell: ping -c 4 192.168.50.50
+      register: ping1_web
+      tags: [ping, pc1aweb]
+
+    - name: Mostrar resultado del ping a Web Server
+      ansible.builtin.debug:
+        var: ping1_web.stdout_lines
+      tags: [ping, pc1aweb]
+
+- name: Prueba de conectividad desde PC2 a Web Server
+  hosts: clab-lab3-PC2
+  gather_facts: false
+  tasks:
+    - name: Ping a Web Server
+      ansible.builtin.shell: ping -c 4 192.168.50.50
+      register: ping2_web
+      tags: [ping, pc2aweb]
+
+    - name: Mostrar resultado del ping a Web Server
+      ansible.builtin.debug:
+        var: ping2_web.stdout_lines
+      tags: [ping,pc2aweb]
+
+- name: Prueba de conectividad desde PC3 a Web Server
+  hosts: clab-lab3-PC3
+  gather_facts: false
+  tasks:
+    - name: Ping a Web Server
+      ansible.builtin.shell: ping -c 4 192.168.50.50
+      register: ping3_web
+      tags: [ping, pc3aweb]
+
+    - name: Mostrar resultado del ping a Web Server
+      ansible.builtin.debug:
+        var: ping3_web.stdout_lines
+      tags: [ping, pc3aweb]
+
+- name: Prueba de resolución DNS desde PC1
+  hosts: clab-lab3-PC1
+  gather_facts: false
+  tasks:
+    - name: Resolver sitio1.labredes.com desde DNS primario
+      ansible.builtin.shell: dig sitio1.labredes.com @192.168.50.11
+      register: dns_sitio1
+      tags: [dns, dnssitio1]
+
+    - name: Mostrar IP resuelta para sitio1.labredes.com
+      ansible.builtin.debug:
+        var: dns_sitio1.stdout_lines
+      tags: [dns, dnssitio1]
+
+- name: Prueba de resolución DNS desde PC3
+  hosts: clab-lab3-PC3
+  gather_facts: false
+  tasks:
+    - name: Resolver sitio2.labredes.com desde DNS secundario
+      ansible.builtin.shell: dig sitio2.labredes.com @192.168.50.12
+      register: dns_sitio2
+      tags: [dns, dnssitio2]
+
+    - name: Mostrar IP resuelta para sitio2.labredes.com
+      ansible.builtin.debug:
+        var: dns_sitio2.stdout_lines
+      tags: [dns, dnssitio2]
+
+- name: Prueba de transferencia de zona desde PC1
+  hosts: clab-lab3-PC1
+  gather_facts: false
+  tags: dns_AXFR
+  tasks:
+    - name: Resolver labredes.com desde DNS primario con AXFR
+      ansible.builtin.shell: dig labredes.com AXFR
+      register: dns1_AXFR1
+      tags: [dns, AXFR1]
+
+    - name: Mostrar IP resuelta para sitio2.labredes.com
+      ansible.builtin.debug:
+        var: dns1_AXFR1.stdout_lines
+      tags: [dns, AXFR1]
+
+    - name: Resolver labredes.com desde DNS secundario con AXFR
+      ansible.builtin.shell: dig @192.168.50.12 labredes.com AXFR
+      register: dns2_AXFR2
+      tags: [dns, AXFR2]
+
+    - name: Mostrar IP resuelta para sitio2.labredes.com
+      ansible.builtin.debug:
+        var: dns2_AXFR2.stdout_lines
+      tags: [dns, AXFR2]
+
+- name: Prueba de acceso HTTP a sitio1 y sitio2 desde PC1
+  hosts: clab-lab3-PC1
+  gather_facts: false
+  tags: [curl]
+  tasks:
+    - name: Hacer curl a sitio1.labredes.com
+      ansible.builtin.shell: |
+        curl -s -D - sitio1.labredes.com
+      register: curl_sitio1
+      tags: curl_sitio1
+
+    - name: Mostrar respuesta de sitio1.labredes.com
+      debug:
+        var: curl_sitio1.stdout_lines
+      tags: curl_sitio1
+
+    - name: Hacer curl a sitio2.labredes.com
+      ansible.builtin.shell: |
+        curl -s -D - sitio2.labredes.com
+      register: curl_sitio2
+      tags: curl_sitio2
+
+    - name: Mostrar respuesta de sitio2.labredes.com
+      debug:
+        var: curl_sitio2.stdout_lines
+      tags: curl_sitio2
+
+    - name: Hacer curl a alias1.labredes.com
+      ansible.builtin.shell: |
+        curl -s -D - alias1.labredes.com
+      register: curl_alias1
+      tags: curl_alias1
+
+    - name: Mostrar respuesta de sitio2.labredes.com
+      debug:
+        var: curl_alias1.stdout_lines
+      tags: curl_alias1
+
+    - name: Hacer curl a alias2.labredes.com
+      ansible.builtin.shell: |
+        curl -s -D - alias2.labredes.com
+      register: curl_alias2
+      tags: curl_alias2
+
+    - name: Mostrar respuesta de sitio2.labredes.com
+      debug:
+        var: curl_alias2.stdout_lines
+      tags: curl_alias2

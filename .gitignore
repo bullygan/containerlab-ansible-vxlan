@@ -1,0 +1,13 @@
+# Archivos de captura de tráfico
+**/*.pcap
+**/*.pcapng
+
+# Archivos generados automáticamente por containerlab
+clab-*/.tls/
+clab-*/*.yml
+clab-*/authorized_keys
+clab-*/topology-data.json
+
+# Archivos back up de la infra.
+.*.yaml.bak
+.*.yml.bak

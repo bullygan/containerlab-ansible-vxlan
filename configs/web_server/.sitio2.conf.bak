@@ -1,0 +1,8 @@
+<VirtualHost *:80>
+    ServerName sitio2.labredes.com
+    ServerAlias alias2.labredes.com
+    DocumentRoot /var/www/sitio2
+    DirectoryIndex sitio2.html
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>

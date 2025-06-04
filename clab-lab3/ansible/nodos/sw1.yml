@@ -1,0 +1,109 @@
+- name: Configurar sw1 con módulos de Ansible
+  hosts: clab-lab3-sw1
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Iniciar servicio FRR
+      command: /etc/init.d/frr start
+
+    - name: Habilitar reenvío de paquetes
+      sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        state: present
+
+    - name: Actualizar paquetes en Alpine
+      command: apk update
+
+    - name: Instalar tcpdump
+      command: apk add tcpdump
+
+    - name: Crear bridge TRUNK
+      command: ip link add name TRUNK type bridge
+
+    - name: Levantar bridge TRUNK
+      command: ip link set dev TRUNK up
+
+    - name: Habilitar vlan_filtering en TRUNK
+      command: ip link set dev TRUNK type bridge vlan_filtering 1
+
+    - name: Asociar interfaces al bridge TRUNK
+      loop: [eth5, eth4, eth6, eth1, eth2, eth3]
+      command: ip link set dev {{ item }} master TRUNK
+      tags: agregar-int-trunk
+
+    - name: Crear y levantar subinterfaces VLAN
+      block:
+        - name: Crear subinterfaces
+          loop:
+            - { name: Gerencia, id: 10 }
+            - { name: Empleados, id: 20 }
+            - { name: Servidores, id: 50 }
+          command: ip link add link TRUNK name {{ item.name }} type vlan id {{ item.id }}
+
+        - name: Levantar subinterfaces
+          loop: [Gerencia, Empleados, Servidores]
+          command: ip link set dev {{ item }} up
+      tags: vlan-subinterfaces
+
+    - name: Agregar VLANs al bridge (self)
+      loop: [10, 20, 50]
+      command: bridge vlan add dev TRUNK vid {{ item }} self
+      tags: vlan-self
+
+    - name: Asignar VLANs tagged a eth5
+      loop: [10, 20, 50]
+      command: bridge vlan add dev eth5 vid {{ item }} tagged
+      tags: vlan-eth5-tagged
+
+    - name: Asignar puertos de acceso untagged a VLANs
+      block:
+        - name: eth4 - VLAN 10 (Gerencia)
+          command: bridge vlan add dev eth4 vid 10 pvid untagged
+
+        - name: eth6 - VLAN 20 (Empleados)
+          command: bridge vlan add dev eth6 vid 20 pvid untagged
+
+        - name: eth1 - VLAN 50 (DNS Primario)
+          command: bridge vlan add dev eth1 vid 50 pvid untagged
+
+        - name: eth2 - VLAN 50 (DNS Secundario)
+          command: bridge vlan add dev eth2 vid 50 pvid untagged
+
+        - name: eth3 - VLAN 50 (Web Server)
+          command: bridge vlan add dev eth3 vid 50 pvid untagged
+      tags: vlan-untagged
+
+    - name: Mostrar VLANs del bridge
+      command: bridge vlan show
+      register: vlan_output
+
+    - name: Mostrar salida VLANs
+      debug:
+        var: vlan_output.stdout_lines
+
+    - name: Mostrar interfaces en el bridge
+      command: brctl show
+
+    - name: Cambiar politica de tráfico default en chain FORWARD a DROP.
+      command: iptables -P FORWARD DROP
+      tags: firewall
+
+    - name: Permitir tráfico entre y hacia Servidores.
+      block:
+        - name: Permitir de Gerencia VLAN10 a Servidores VLAN50
+          command: iptables -A FORWARD -s 192.168.10.0/24 -d 192.168.50.0/24 -j ACCEPT
+
+        - name: Permitir Empleados VLAN20 a Servidores VLAN50
+          command: iptables -A FORWARD -s 192.168.20.0/24 -d 192.168.50.0/24 -j ACCEPT
+      
+        - name: Permitir Servidores VLAN50 a Gerencia VLAN10
+          command: iptables -A FORWARD -s 192.168.50.0/24 -d 192.168.10.0/24 -j ACCEPT
+
+        - name: Permitir Servidores VLAN50 a Empleados VLAN20
+          command: iptables -A FORWARD -s 192.168.50.0/24 -d 192.168.20.0/24 -j ACCEPT
+
+        - name: Permitir Tráfico entre Servidores 
+          command: iptables -A FORWARD -s 192.168.50.0/24 -d 192.168.50.0/24 -j ACCEPT
+      tags: firewall

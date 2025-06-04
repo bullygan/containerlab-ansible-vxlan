@@ -1,0 +1,36 @@
+- name: Configurar PC1 con módulos de Ansible
+  hosts: clab-lab3-PC1
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Instalar aplicaciones necesarias
+      ansible.builtin.apt:
+        name:
+          - iproute2
+          - iputils-ping
+          - net-tools
+          - tcpdump
+          - curl
+          - dnsutils
+        update_cache: yes # igual apt-get update.
+        install_recommends: no # solo lo necesario
+        force_apt_get: yes # fuerza usar apt-get
+    
+    - name: Configurar IP en eth1
+      ansible.builtin.command: ip addr add 192.168.10.10/24 dev eth1
+      ignore_errors: true  # Por si ya está configurada
+
+    - name: Eliminar ruta por defecto existente
+      ansible.builtin.command: ip route del default
+      ignore_errors: true
+
+    - name: Agregar nueva ruta por defecto
+      ansible.builtin.command: ip route add default via 192.168.10.1
+      ignore_errors: true
+    
+    - name: Configurar el DNS apuntando al primario
+      ansible.builtin.shell: echo "nameserver 192.168.50.11" > /etc/resolv.conf
+    
+    - name: Configurar el DNS apuntando al Secundario
+      ansible.builtin.shell: echo "nameserver 192.168.50.12" >> /etc/resolv.conf

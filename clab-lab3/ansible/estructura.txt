@@ -1,0 +1,20 @@
+ansible/
+├── nodos/                     # Playbooks individuales por nodo
+│   ├── dns_primario.yml
+│   ├── dns_secundario.yml
+│   ├── web_server.yml
+│   ├── r2.yml
+│   ├── r3.yml
+│   ├── sw1.yml
+│   ├── PC1.yml
+│   ├── PC2.yml
+│   └── PC3.yml
+├── lab3full_setup_mixto.yml   # Versión que combina raw + Ansible
+├── orquestador.yml            # Versión 100% Ansible usando import_playbook
+├── ansible-inventory.yml      # Inventario generado por containerlab
+└── ansible.cfg                # Configuración de Ansible para docker
+#Para correr el modularizado.
+cd ansible
+ansible-playbook orquestador.yml
+no le indico con -i el inventory de los hosts porque ya 
+tengo definido como default en el config ansible.cfg
